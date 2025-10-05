@@ -26,12 +26,17 @@ export const dbConfig = {
 
 // Create DataSource with connection string or individual parameters
 const createDataSourceConfig = () => {
+  // Determine if we're running in production (compiled) or development
+  const isProduction = process.env.NODE_ENV === 'production' || !process.env.NODE_ENV;
+  const entityExtension = isProduction ? 'js' : 'ts';
+  const migrationExtension = isProduction ? 'js' : 'ts';
+
   const baseConfig = {
     type: 'postgres' as const,
     synchronize: dbConfig.synchronize,
     logging: dbConfig.logging,
-    entities: [join(__dirname, '../database/entities/**/*.ts')],
-    migrations: [join(__dirname, '../database/migrations/**/*.ts')],
+    entities: [join(__dirname, `../database/entities/**/*.${entityExtension}`)],
+    migrations: [join(__dirname, `../database/migrations/**/*.${migrationExtension}`)],
     subscribers: [],
   };
 
