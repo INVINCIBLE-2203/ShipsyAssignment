@@ -9,8 +9,7 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "prepare": "husky install"
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\""
   },
   "keywords": [],
   "author": "",
