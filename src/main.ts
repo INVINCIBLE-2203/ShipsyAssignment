@@ -4,8 +4,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import passport from 'passport';
+import swaggerUi from 'swagger-ui-express';
 import { appConfig } from './config/app.config';
 import { AppDataSource } from './config/database.config';
+import { swaggerSpec } from './config/swagger.config';
 import { authRouter } from './modules/auth/auth.routes';
 import { tasksRouter } from './modules/tasks/tasks.routes';
 import { organizationsRouter } from './modules/organizations/organizations.routes';
@@ -34,6 +36,24 @@ async function bootstrap() {
     legacyHeaders: false,
   });
   app.use(limiter);
+
+  // --- Swagger Documentation ---
+  const swaggerOptions = {
+    explorer: true,
+    swaggerOptions: {
+      docExpansion: 'list',
+      filter: true,
+      showRequestDuration: true,
+    },
+  };
+  
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
+  
+  // Serve raw swagger spec at /api-docs.json
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
 
   // --- API Routes ---
   app.use('/api/auth', authRouter);

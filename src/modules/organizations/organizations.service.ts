@@ -5,6 +5,9 @@ import { Repository, DataSource } from 'typeorm';
 import { Organization } from '../../database/entities/organization.entity';
 import { OrganizationMember, MemberRole } from '../../database/entities/organization-member.entity';
 import { User } from '../../database/entities/user.entity';
+import { Project } from '../../database/entities/project.entity';
+import { Task } from '../../database/entities/task.entity';
+import { CustomProperty } from '../../database/entities/custom-property.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { AppError } from '../../common/AppError';
@@ -20,6 +23,12 @@ export class OrganizationsService {
     private organizationMemberRepository: Repository<OrganizationMember>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Project)
+    private projectRepository: Repository<Project>,
+    @InjectRepository(Task)
+    private taskRepository: Repository<Task>,
+    @InjectRepository(CustomProperty)
+    private customPropertyRepository: Repository<CustomProperty>,
     private dataSource: DataSource,
   ) {}
 
@@ -117,7 +126,26 @@ export class OrganizationsService {
     if (!member || member.role !== MemberRole.OWNER) {
       throw new AppError(403, 'You do not have permission to delete this organization.');
     }
-    // TypeORM cascades should handle deletion of related entities if configured correctly.
+
+    // Implement cascading delete to handle all related entities
+    // 1. Get all projects in this organization
+    const projects = await this.projectRepository.find({ where: { organization_id: orgId } });
+    
+    // 2. Delete all tasks in all projects of this organization
+    for (const project of projects) {
+      await this.taskRepository.delete({ project_id: project.id });
+    }
+    
+    // 3. Delete all projects in this organization
+    await this.projectRepository.delete({ organization_id: orgId });
+    
+    // 4. Delete all custom properties in this organization
+    await this.customPropertyRepository.delete({ organization_id: orgId });
+    
+    // 5. Delete all organization members
+    await this.organizationMemberRepository.delete({ organization_id: orgId });
+    
+    // 6. Finally delete the organization itself
     await this.organizationRepository.delete(orgId);
   }
 
@@ -205,17 +233,19 @@ export class OrganizationsService {
         relations: ['user'],
         take: pagination.limit || 10,
         skip: ((pagination.page || 1) - 1) * (pagination.limit || 10),
-        select: {
-            user: {
-                id: true,
-                username: true,
-                email: true,
-            },
-            role: true,
-            joined_at: true,
-        }
     });
 
-    return { data: members, total };
+    // Format the response to only include the fields we want
+    const formattedMembers = members.map(member => ({
+        user: {
+            id: member.user.id,
+            username: member.user.username,
+            email: member.user.email
+        },
+        role: member.role,
+        joined_at: member.joined_at
+    }));
+
+    return { data: formattedMembers, total };
   }
 }

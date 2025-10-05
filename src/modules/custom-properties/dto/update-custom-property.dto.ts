@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, ValidateIf, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateIf, MaxLength, IsObject } from 'class-validator';
 
 export class UpdateCustomPropertyDto {
   @IsString()
@@ -6,8 +6,7 @@ export class UpdateCustomPropertyDto {
   @IsOptional()
   name?: string;
 
-  @IsArray()
-  @IsString({ each: true })
+  @IsObject()
   @IsOptional()
-  options?: string[];
+  options?: any;
 }

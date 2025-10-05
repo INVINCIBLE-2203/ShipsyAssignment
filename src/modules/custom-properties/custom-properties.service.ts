@@ -25,8 +25,8 @@ export class CustomPropertiesService {
 
   async defineCustomProperty(orgId: string, userId: string, dto: CreateCustomPropertyDto): Promise<CustomProperty> {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
-    if (!member || member.role !== MemberRole.ADMIN) {
-      throw new AppError(403, 'Only organization admins can define custom properties.');
+    if (!member || ![MemberRole.OWNER, MemberRole.ADMIN].includes(member.role)) {
+      throw new AppError(403, 'Only organization owners and admins can define custom properties.');
     }
 
     const prop = this.customPropertyRepository.create({
@@ -51,8 +51,8 @@ export class CustomPropertiesService {
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: prop.organization_id, user_id: userId } });
-    if (!member || member.role !== MemberRole.ADMIN) {
-      throw new AppError(403, 'Only organization admins can update custom properties.');
+    if (!member || ![MemberRole.OWNER, MemberRole.ADMIN].includes(member.role)) {
+      throw new AppError(403, 'Only organization owners and admins can update custom properties.');
     }
 
     prop.property_name = dto.name || prop.property_name;
@@ -68,8 +68,8 @@ export class CustomPropertiesService {
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: prop.organization_id, user_id: userId } });
-    if (!member || member.role !== MemberRole.ADMIN) {
-      throw new AppError(403, 'Only organization admins can delete custom properties.');
+    if (!member || ![MemberRole.OWNER, MemberRole.ADMIN].includes(member.role)) {
+      throw new AppError(403, 'Only organization owners and admins can delete custom properties.');
     }
 
     await this.customPropertyRepository.delete(propertyId);

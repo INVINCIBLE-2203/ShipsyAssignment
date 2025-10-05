@@ -61,7 +61,7 @@ export class ProjectsService {
       .loadRelationCountAndMap('project.taskCount', 'project.tasks')
       .addSelect(subQuery => {
           return subQuery
-            .select('CAST(COUNT(CASE WHEN t.status = \'done\' THEN 1 END) * 100.0 / COUNT(t.id) AS FLOAT)')
+            .select("CASE WHEN COUNT(t.id) = 0 THEN 0 ELSE CAST(COUNT(CASE WHEN t.status = 'done' THEN 1 END) * 100.0 / COUNT(t.id) AS FLOAT) END")
             .from(Task, 't')
             .where('t.project_id = project.id');
       }, 'completionRate')
@@ -121,6 +121,10 @@ export class ProjectsService {
       throw new AppError(403, 'You do not have permission to delete this project.');
     }
 
+    // Delete all tasks associated with this project first (cascading delete)
+    await this.taskRepository.delete({ project_id: projectId });
+
+    // Then delete the project
     await this.projectRepository.delete(projectId);
   }
 
@@ -167,7 +171,8 @@ export class ProjectsService {
         .where('task.project_id = :projectId', { projectId })
         .andWhere('assignee.id IS NOT NULL')
         .groupBy('assignee.id')
-        .orderBy('taskCount', 'DESC')
+        .addGroupBy('assignee.username')
+        .orderBy('COUNT(task.id)', 'DESC')
         .getRawMany();
 
     return {

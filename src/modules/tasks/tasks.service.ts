@@ -117,7 +117,7 @@ export class TasksService {
   async getTaskById(taskId: string, userId: string): Promise<Task> {
     const task = await this.taskRepository.findOne({ 
         where: { id: taskId }, 
-        relations: ['project', 'assignee', 'customPropertyValues', 'customPropertyValues.property'] 
+        relations: ['project', 'assignee', 'customPropertyValues', 'customPropertyValues.customProperty']
     });
     if (!task) {
       throw new AppError(404, 'Task not found.');
