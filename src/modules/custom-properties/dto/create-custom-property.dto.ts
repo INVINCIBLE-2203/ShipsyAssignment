@@ -12,13 +12,13 @@ export enum CustomPropertyType {
 export class CreateCustomPropertyDto {
   @IsString()
   @MaxLength(50)
-  name: string;
+  name!: string;
 
   @IsEnum(CustomPropertyType)
-  type: CustomPropertyType;
+  type!: CustomPropertyType;
 
   @IsEnum(['task', 'project'])
-  entityType: 'task' | 'project';
+  entityType!: 'task' | 'project';
 
   @IsArray()
   @IsString({ each: true })

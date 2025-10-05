@@ -9,7 +9,7 @@ export class ProjectsController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const { orgId } = req.params;
-      const result = await this.projectsService.createProject(orgId, req.user.id, req.body as CreateProjectDto);
+      const result = await this.projectsService.createProject(orgId, (req.user as any)?.id, req.body as CreateProjectDto);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -22,7 +22,7 @@ export class ProjectsController {
       const { page = 1, limit = 10, ...filters } = req.query;
       const result = await this.projectsService.getOrganizationProjects(
         orgId,
-        req.user.id,
+        (req.user as any)?.id,
         filters as any,
         { page: +page, limit: +limit },
       );
@@ -34,7 +34,7 @@ export class ProjectsController {
 
   async findOne(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.projectsService.getProjectById(req.params.id, req.user.id);
+      const result = await this.projectsService.getProjectById(req.params.id, (req.user as any)?.id);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -43,7 +43,7 @@ export class ProjectsController {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.projectsService.updateProject(req.params.id, req.user.id, req.body as UpdateProjectDto);
+      const result = await this.projectsService.updateProject(req.params.id, (req.user as any)?.id, req.body as UpdateProjectDto);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -52,7 +52,7 @@ export class ProjectsController {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      await this.projectsService.deleteProject(req.params.id, req.user.id);
+      await this.projectsService.deleteProject(req.params.id, (req.user as any)?.id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -61,7 +61,7 @@ export class ProjectsController {
 
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.projectsService.getProjectStats(req.params.id, req.user.id);
+      const result = await this.projectsService.getProjectStats(req.params.id, (req.user as any)?.id);
       res.status(200).json(result);
     } catch (error) {
       next(error);

@@ -9,7 +9,7 @@ export class OrganizationsController {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.organizationsService.createOrganization(req.user.id, req.body as CreateOrganizationDto);
+      const result = await this.organizationsService.createOrganization((req.user as any)?.id, req.body as CreateOrganizationDto);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -19,7 +19,7 @@ export class OrganizationsController {
   async findAll(req: Request, res: Response, next: NextFunction) {
     try {
       const { page = 1, limit = 10 } = req.query;
-      const result = await this.organizationsService.getUserOrganizations(req.user.id, { page: +page, limit: +limit });
+      const result = await this.organizationsService.getUserOrganizations((req.user as any)?.id, { page: +page, limit: +limit });
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -28,7 +28,7 @@ export class OrganizationsController {
 
   async findOne(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.organizationsService.getOrganizationById(req.params.id, req.user.id);
+      const result = await this.organizationsService.getOrganizationById(req.params.id, (req.user as any)?.id);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -37,7 +37,7 @@ export class OrganizationsController {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.organizationsService.updateOrganization(req.params.id, req.user.id, req.body as UpdateOrganizationDto);
+      const result = await this.organizationsService.updateOrganization(req.params.id, (req.user as any)?.id, req.body as UpdateOrganizationDto);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -46,7 +46,7 @@ export class OrganizationsController {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      await this.organizationsService.deleteOrganization(req.params.id, req.user.id);
+      await this.organizationsService.deleteOrganization(req.params.id, (req.user as any)?.id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -56,7 +56,7 @@ export class OrganizationsController {
   async inviteMember(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, role } = req.body;
-      const result = await this.organizationsService.inviteMember(req.params.id, req.user.id, email, role as MemberRole);
+      const result = await this.organizationsService.inviteMember(req.params.id, (req.user as any)?.id, email, role as MemberRole);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -66,7 +66,7 @@ export class OrganizationsController {
   async getMembers(req: Request, res: Response, next: NextFunction) {
     try {
         const { page = 1, limit = 10 } = req.query;
-        const result = await this.organizationsService.getOrganizationMembers(req.params.id, req.user.id, { page: +page, limit: +limit });
+        const result = await this.organizationsService.getOrganizationMembers(req.params.id, (req.user as any)?.id, { page: +page, limit: +limit });
         res.status(200).json(result);
     } catch (error) {
         next(error);
@@ -77,7 +77,7 @@ export class OrganizationsController {
     try {
       const { userId } = req.params;
       const { role } = req.body;
-      await this.organizationsService.updateMemberRole(req.params.id, req.user.id, userId, role as MemberRole);
+      await this.organizationsService.updateMemberRole(req.params.id, (req.user as any)?.id, userId, role as MemberRole);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -87,7 +87,7 @@ export class OrganizationsController {
   async removeMember(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;
-      await this.organizationsService.removeMember(req.params.id, req.user.id, userId);
+      await this.organizationsService.removeMember(req.params.id, (req.user as any)?.id, userId);
       res.status(204).send();
     } catch (error) {
       next(error);

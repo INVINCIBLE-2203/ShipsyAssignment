@@ -9,7 +9,7 @@ export class CustomPropertiesController {
   async define(req: Request, res: Response, next: NextFunction) {
     try {
       const { orgId } = req.params;
-      const result = await this.customPropertiesService.defineCustomProperty(orgId, req.user.id, req.body as CreateCustomPropertyDto);
+      const result = await this.customPropertiesService.defineCustomProperty(orgId, (req.user as any)?.id, req.body as CreateCustomPropertyDto);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -29,7 +29,7 @@ export class CustomPropertiesController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const result = await this.customPropertiesService.updatePropertyDefinition(id, req.user.id, req.body as UpdateCustomPropertyDto);
+      const result = await this.customPropertiesService.updatePropertyDefinition(id, (req.user as any)?.id, req.body as UpdateCustomPropertyDto);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -39,7 +39,7 @@ export class CustomPropertiesController {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      await this.customPropertiesService.deleteProperty(id, req.user.id);
+      await this.customPropertiesService.deleteProperty(id, (req.user as any)?.id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -50,7 +50,7 @@ export class CustomPropertiesController {
     try {
       const { entityId, propertyId } = req.params;
       const { value } = req.body;
-      const result = await this.customPropertiesService.setPropertyValue(entityId, propertyId, value, req.user.id);
+      const result = await this.customPropertiesService.setPropertyValue(entityId, propertyId, value, (req.user as any)?.id);
       res.status(200).json(result);
     } catch (error) {
       next(error);

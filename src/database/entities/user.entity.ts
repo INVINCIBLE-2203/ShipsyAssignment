@@ -6,32 +6,32 @@ import { Comment } from './comment.entity';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column({ unique: true })
-  username: string;
+  username!: string;
 
   @Column()
-  password_hash: string;
+  password_hash!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @OneToMany(() => OrganizationMember, member => member.user)
-  organizationMemberships: OrganizationMember[];
+  organizationMemberships!: OrganizationMember[];
 
   @OneToMany(() => Task, task => task.assignee)
-  assignedTasks: Task[];
+  assignedTasks!: Task[];
 
   @OneToMany(() => Task, task => task.createdBy)
-  createdTasks: Task[];
+  createdTasks!: Task[];
 
   @OneToMany(() => Comment, comment => comment.user)
-  comments: Comment[];
+  comments!: Comment[];
 }

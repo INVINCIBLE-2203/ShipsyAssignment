@@ -9,7 +9,7 @@ export function validationMiddleware(dtoClass: any) {
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      const errorDetails = errors.map(error => Object.values(error.constraints)).flat();
+      const errorDetails = errors.map(error => Object.values(error.constraints || {})).flat();
       next(new AppError(400, 'Validation failed', 'VALIDATION_ERROR', errorDetails));
     } else {
       req.body = dto;

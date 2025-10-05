@@ -26,7 +26,7 @@ export class CustomPropertiesService {
   async defineCustomProperty(orgId: string, userId: string, dto: CreateCustomPropertyDto): Promise<CustomProperty> {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member || member.role !== MemberRole.ADMIN) {
-      throw new AppError('Only organization admins can define custom properties.', 403);
+      throw new AppError(403, 'Only organization admins can define custom properties.');
     }
 
     const prop = this.customPropertyRepository.create({
@@ -47,12 +47,12 @@ export class CustomPropertiesService {
   async updatePropertyDefinition(propertyId: string, userId: string, dto: UpdateCustomPropertyDto): Promise<CustomProperty> {
     const prop = await this.customPropertyRepository.findOne({ where: { id: propertyId } });
     if (!prop) {
-      throw new AppError('Custom property not found.', 404);
+      throw new AppError(404, 'Custom property not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: prop.organization_id, user_id: userId } });
     if (!member || member.role !== MemberRole.ADMIN) {
-      throw new AppError('Only organization admins can update custom properties.', 403);
+      throw new AppError(403, 'Only organization admins can update custom properties.');
     }
 
     prop.property_name = dto.name || prop.property_name;
@@ -64,12 +64,12 @@ export class CustomPropertiesService {
   async deleteProperty(propertyId: string, userId: string): Promise<void> {
     const prop = await this.customPropertyRepository.findOne({ where: { id: propertyId } });
     if (!prop) {
-      throw new AppError('Custom property not found.', 404);
+      throw new AppError(404, 'Custom property not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: prop.organization_id, user_id: userId } });
     if (!member || member.role !== MemberRole.ADMIN) {
-      throw new AppError('Only organization admins can delete custom properties.', 403);
+      throw new AppError(403, 'Only organization admins can delete custom properties.');
     }
 
     await this.customPropertyRepository.delete(propertyId);
@@ -78,7 +78,7 @@ export class CustomPropertiesService {
   async setPropertyValue(entityId: string, propertyId: string, value: any, userId: string): Promise<CustomPropertyValue> {
     const prop = await this.customPropertyRepository.findOne({ where: { id: propertyId } });
     if (!prop) {
-      throw new AppError('Custom property not found.', 404);
+      throw new AppError(404, 'Custom property not found.');
     }
 
     // Validation logic here based on prop.property_type
@@ -86,11 +86,11 @@ export class CustomPropertiesService {
     if (prop.property_type === PropertyType.USER) {
         const user = await this.userRepository.findOne({ where: { id: value } });
         if (!user) {
-            throw new AppError('User not found.', 404);
+            throw new AppError(404, 'User not found.');
         }
         const member = await this.organizationMemberRepository.findOne({ where: { organization_id: prop.organization_id, user_id: value } });
         if (!member) {
-            throw new AppError('User is not a member of this organization.', 400);
+            throw new AppError(400, 'User is not a member of this organization.');
         }
     }
 

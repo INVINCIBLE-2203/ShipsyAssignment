@@ -62,10 +62,10 @@ export class AuthService {
   private generateTokens(payload: JwtPayload): TokenResponse {
     const accessToken = jwt.sign(payload, authConfig.jwt.secret, {
       expiresIn: authConfig.jwt.expiresIn,
-    });
+    } as jwt.SignOptions);
     const refreshToken = jwt.sign(payload, authConfig.jwtRefresh.secret, {
       expiresIn: authConfig.jwtRefresh.expiresIn,
-    });
+    } as jwt.SignOptions);
     return { accessToken, refreshToken };
   }
 
@@ -75,7 +75,7 @@ export class AuthService {
         throw new AppError(404, 'User not found');
     }
     // It's important to not send back the password hash
-    delete user.password_hash;
-    return user;
+    const { password_hash, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
   }
 }

@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum, IsUUID, IsDateString, MinLength, MaxLength } from 'class-validator';
-import { TaskStatus, TaskPriority } from '../../database/entities/task.entity';
+import { TaskStatus, TaskPriority } from '../../../database/entities/task.entity';
 
 export class UpdateTaskDto {
   @IsString()

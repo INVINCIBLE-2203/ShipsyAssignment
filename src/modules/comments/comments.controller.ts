@@ -9,7 +9,7 @@ export class CommentsController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const { taskId } = req.params;
-      const result = await this.commentsService.createComment(taskId, req.user.id, req.body as CreateCommentDto);
+      const result = await this.commentsService.createComment(taskId, (req.user as any)?.id, req.body as CreateCommentDto);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -20,7 +20,7 @@ export class CommentsController {
     try {
       const { taskId } = req.params;
       const { page = 1, limit = 10 } = req.query;
-      const result = await this.commentsService.getTaskComments(taskId, req.user.id, { page: +page, limit: +limit });
+      const result = await this.commentsService.getTaskComments(taskId, (req.user as any)?.id, { page: +page, limit: +limit });
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -31,7 +31,7 @@ export class CommentsController {
     try {
       const { id } = req.params;
       const { content } = req.body as UpdateCommentDto;
-      const result = await this.commentsService.updateComment(id, req.user.id, content);
+      const result = await this.commentsService.updateComment(id, (req.user as any)?.id, content);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export class CommentsController {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      await this.commentsService.deleteComment(id, req.user.id);
+      await this.commentsService.deleteComment(id, (req.user as any)?.id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -51,7 +51,7 @@ export class CommentsController {
   async getUserMentions(req: Request, res: Response, next: NextFunction) {
     try {
         const { page = 1, limit = 10 } = req.query;
-        const result = await this.commentsService.getUserMentions(req.user.id, { page: +page, limit: +limit });
+        const result = await this.commentsService.getUserMentions((req.user as any)?.id, { page: +page, limit: +limit });
         res.status(200).json(result);
     } catch (error) {
         next(error);

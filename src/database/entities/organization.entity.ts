@@ -6,26 +6,26 @@ import { CustomProperty } from './custom-property.entity';
 @Entity('organizations')
 export class Organization {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ unique: true })
-  slug: string;
+  slug!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @OneToMany(() => OrganizationMember, member => member.organization)
-  members: OrganizationMember[];
+  members!: OrganizationMember[];
 
   @OneToMany(() => Project, project => project.organization)
-  projects: Project[];
+  projects!: Project[];
 
   @OneToMany(() => CustomProperty, prop => prop.organization)
-  customProperties: CustomProperty[];
+  customProperties!: CustomProperty[];
 }

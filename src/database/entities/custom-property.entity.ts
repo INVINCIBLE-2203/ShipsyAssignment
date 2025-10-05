@@ -20,36 +20,36 @@ export enum EntityType {
 @Entity('custom_properties')
 export class CustomProperty {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid')
-  organization_id: string;
+  organization_id!: string;
 
   @Column({
       type: 'enum',
       enum: EntityType
   })
-  entity_type: EntityType
+  entity_type!: EntityType
 
   @Column()
-  property_name: string;
+  property_name!: string;
 
   @Column({
     type: 'enum',
     enum: PropertyType,
   })
-  property_type: PropertyType;
+  property_type!: PropertyType;
 
   @Column('jsonb', { nullable: true })
-  options: any; // For select or multi_select
+  options!: any; // For select or multi_select
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  created_at: Date;
+  created_at!: Date;
 
   @ManyToOne(() => Organization, org => org.customProperties)
   @JoinColumn({ name: 'organization_id' })
-  organization: Organization;
+  organization!: Organization;
 
   @OneToMany(() => CustomPropertyValue, value => value.customProperty)
-  values: CustomPropertyValue[];
+  values!: CustomPropertyValue[];
 }

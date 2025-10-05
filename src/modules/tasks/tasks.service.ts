@@ -7,7 +7,12 @@ import { OrganizationMember } from '../../database/entities/organization-member.
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AppError } from '../../common/AppError';
-import { PaginationParams, SortParams } from '../../utils/pagination.util';
+import { PaginationParams } from '../../utils/pagination.util';
+
+export interface SortParams {
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+}
 
 export interface TaskFilterParams {
     status?: TaskStatus[];
@@ -32,18 +37,18 @@ export class TasksService {
   async createTask(projectId: string, userId: string, dto: CreateTaskDto): Promise<Task> {
     const project = await this.projectRepository.findOne({ where: { id: projectId } });
     if (!project) {
-      throw new AppError('Project not found.', 404);
+      throw new AppError(404, 'Project not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have access to this project.', 403);
+      throw new AppError(403, 'You do not have access to this project.');
     }
 
     if (dto.assigneeId) {
         const assigneeMember = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: dto.assigneeId } });
         if (!assigneeMember) {
-            throw new AppError('Assignee is not a member of this organization.', 400);
+            throw new AppError(400, 'Assignee is not a member of this organization.');
         }
     }
 
@@ -60,12 +65,12 @@ export class TasksService {
   async getProjectTasks(projectId: string, userId: string, filters: TaskFilterParams, pagination: PaginationParams, sorting: SortParams) {
     const project = await this.projectRepository.findOne({ where: { id: projectId } });
     if (!project) {
-        throw new AppError('Project not found.', 404);
+        throw new AppError(404, 'Project not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: userId } });
     if (!member) {
-        throw new AppError('You do not have access to this project.', 403);
+        throw new AppError(403, 'You do not have access to this project.');
     }
 
     const qb = this.taskRepository.createQueryBuilder('task')
@@ -102,8 +107,8 @@ export class TasksService {
     }
 
     const [tasks, total] = await qb
-        .skip((pagination.page - 1) * pagination.limit)
-        .take(pagination.limit)
+        .skip(((pagination.page || 1) - 1) * (pagination.limit || 10))
+        .take(pagination.limit || 10)
         .getManyAndCount();
 
     return { data: tasks, total };
@@ -115,15 +120,15 @@ export class TasksService {
         relations: ['project', 'assignee', 'customPropertyValues', 'customPropertyValues.property'] 
     });
     if (!task) {
-      throw new AppError('Task not found.', 404);
+      throw new AppError(404, 'Task not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: task.project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have access to this task.', 403);
+      throw new AppError(403, 'You do not have access to this task.');
     }
 
-    const commentCount = await this.taskRepository.createQueryBuilder().relation(Task, 'comments').of(taskId).getCount();
+    const commentCount = await this.taskRepository.count({ where: { project_id: taskId } });
     (task as any).commentCount = commentCount;
 
     return task;
@@ -132,25 +137,25 @@ export class TasksService {
   async updateTask(taskId: string, userId: string, dto: UpdateTaskDto): Promise<Task> {
     const task = await this.taskRepository.findOne({ where: { id: taskId }, relations: ['project'] });
     if (!task) {
-      throw new AppError('Task not found.', 404);
+      throw new AppError(404, 'Task not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: task.project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have permission to update this task.', 403);
+      throw new AppError(403, 'You do not have permission to update this task.');
     }
 
     if (dto.assigneeId) {
         const assigneeMember = await this.organizationMemberRepository.findOne({ where: { organization_id: task.project.organization_id, user_id: dto.assigneeId } });
         if (!assigneeMember) {
-            throw new AppError('Assignee is not a member of this organization.', 400);
+            throw new AppError(400, 'Assignee is not a member of this organization.');
         }
     }
 
     if (dto.status === TaskStatus.DONE && task.status !== TaskStatus.DONE) {
         task.completed_at = new Date();
     } else if (dto.status !== TaskStatus.DONE && task.status === TaskStatus.DONE) {
-        task.completed_at = null;
+        task.completed_at = undefined as any;
     }
 
     Object.assign(task, dto);
@@ -160,12 +165,12 @@ export class TasksService {
   async deleteTask(taskId: string, userId: string): Promise<void> {
     const task = await this.taskRepository.findOne({ where: { id: taskId }, relations: ['project'] });
     if (!task) {
-      throw new AppError('Task not found.', 404);
+      throw new AppError(404, 'Task not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: task.project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have permission to delete this task.', 403);
+      throw new AppError(403, 'You do not have permission to delete this task.');
     }
 
     await this.taskRepository.delete(taskId);
@@ -202,8 +207,8 @@ export class TasksService {
             'projectContext.id',
             'projectContext.name',
         ])
-        .skip((pagination.page - 1) * pagination.limit)
-        .take(pagination.limit);
+        .skip(((pagination.page || 1) - 1) * (pagination.limit || 10))
+        .take(pagination.limit || 10);
 
     const [tasks, total] = await qb.getManyAndCount();
     return { data: tasks, total };

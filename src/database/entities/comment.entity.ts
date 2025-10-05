@@ -6,31 +6,31 @@ import { Mention } from './mention.entity';
 @Entity('comments')
 export class Comment {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid')
-  task_id: string;
+  task_id!: string;
 
   @Column('uuid')
-  user_id: string;
+  user_id!: string;
 
   @Column('text')
-  content: string;
+  content!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @ManyToOne(() => Task, task => task.comments)
   @JoinColumn({ name: 'task_id' })
-  task: Task;
+  task!: Task;
 
   @ManyToOne(() => User, user => user.comments)
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @OneToMany(() => Mention, mention => mention.comment)
-  mentions: Mention[];
+  mentions!: Mention[];
 }

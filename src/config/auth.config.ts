@@ -10,6 +10,6 @@ export const authConfig = {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   bcrypt: {
-    saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 12,
+    saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
   },
 };

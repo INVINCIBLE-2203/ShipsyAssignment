@@ -27,7 +27,7 @@ export class OrganizationsService {
     const slug = slugify(dto.name, { lower: true, strict: true });
     const existingOrg = await this.organizationRepository.findOne({ where: { slug } });
     if (existingOrg) {
-      throw new AppError('Organization with this name already exists.', 409);
+      throw new AppError(409, 'Organization with this name already exists.');
     }
 
     return this.dataSource.transaction(async manager => {
@@ -64,8 +64,8 @@ export class OrganizationsService {
           .from(OrganizationMember, 'm')
           .where('m.organization_id = organization.id');
       }, 'memberCount')
-      .offset((pagination.page - 1) * pagination.limit)
-      .limit(pagination.limit);
+      .offset(((pagination.page || 1) - 1) * (pagination.limit || 10))
+      .limit(pagination.limit || 10);
 
     const [memberships, total] = await qb.getManyAndCount();
     return {
@@ -77,7 +77,7 @@ export class OrganizationsService {
   async getOrganizationById(orgId: string, userId: string): Promise<Organization> {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member) {
-      throw new AppError('You are not a member of this organization.', 403);
+      throw new AppError(403, 'You are not a member of this organization.');
     }
 
     const organization = await this.organizationRepository.createQueryBuilder('org')
@@ -87,7 +87,7 @@ export class OrganizationsService {
       .getOne();
 
     if (!organization) {
-      throw new AppError('Organization not found.', 404);
+      throw new AppError(404, 'Organization not found.');
     }
     return organization;
   }
@@ -95,12 +95,12 @@ export class OrganizationsService {
   async updateOrganization(orgId: string, userId: string, dto: UpdateOrganizationDto): Promise<Organization> {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member || ![MemberRole.OWNER, MemberRole.ADMIN].includes(member.role)) {
-      throw new AppError('You do not have permission to update this organization.', 403);
+      throw new AppError(403, 'You do not have permission to update this organization.');
     }
 
     const organization = await this.organizationRepository.findOneBy({ id: orgId });
     if (!organization) {
-      throw new AppError('Organization not found.', 404);
+      throw new AppError(404, 'Organization not found.');
     }
 
     Object.assign(organization, dto);
@@ -115,7 +115,7 @@ export class OrganizationsService {
   async deleteOrganization(orgId: string, userId: string): Promise<void> {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member || member.role !== MemberRole.OWNER) {
-      throw new AppError('You do not have permission to delete this organization.', 403);
+      throw new AppError(403, 'You do not have permission to delete this organization.');
     }
     // TypeORM cascades should handle deletion of related entities if configured correctly.
     await this.organizationRepository.delete(orgId);
@@ -124,17 +124,17 @@ export class OrganizationsService {
   async inviteMember(orgId: string, inviterId: string, email: string, role: MemberRole): Promise<OrganizationMember> {
     const inviter = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: inviterId } });
     if (!inviter || ![MemberRole.OWNER, MemberRole.ADMIN].includes(inviter.role)) {
-      throw new AppError('You do not have permission to invite members.', 403);
+      throw new AppError(403, 'You do not have permission to invite members.');
     }
 
     const userToInvite = await this.userRepository.findOne({ where: { email } });
     if (!userToInvite) {
-      throw new AppError('User with this email does not exist.', 404);
+      throw new AppError(404, 'User with this email does not exist.');
     }
 
     const existingMember = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userToInvite.id } });
     if (existingMember) {
-      throw new AppError('User is already a member of this organization.', 409);
+      throw new AppError(409, 'User is already a member of this organization.');
     }
 
     const newMember = this.organizationMemberRepository.create({
@@ -150,22 +150,22 @@ export class OrganizationsService {
   async updateMemberRole(orgId: string, adminId: string, memberId: string, newRole: MemberRole): Promise<void> {
     const admin = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: adminId } });
     if (!admin || ![MemberRole.OWNER, MemberRole.ADMIN].includes(admin.role)) {
-      throw new AppError('You do not have permission to update roles.', 403);
+      throw new AppError(403, 'You do not have permission to update roles.');
     }
 
     if (admin.role !== MemberRole.OWNER && newRole === MemberRole.OWNER) {
-        throw new AppError('Only owners can assign the owner role.', 403);
+        throw new AppError(403, 'Only owners can assign the owner role.');
     }
 
     const memberToUpdate = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: memberId } });
     if (!memberToUpdate) {
-      throw new AppError('Member not found in this organization.', 404);
+      throw new AppError(404, 'Member not found in this organization.');
     }
 
     if (memberToUpdate.role === MemberRole.OWNER) {
       const ownerCount = await this.organizationMemberRepository.count({ where: { organization_id: orgId, role: MemberRole.OWNER } });
       if (ownerCount <= 1) {
-        throw new AppError('Cannot demote the last owner.', 400);
+        throw new AppError(400, 'Cannot demote the last owner.');
       }
     }
 
@@ -176,18 +176,18 @@ export class OrganizationsService {
   async removeMember(orgId: string, adminId: string, memberId: string): Promise<void> {
     const admin = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: adminId } });
     if (!admin || ![MemberRole.OWNER, MemberRole.ADMIN].includes(admin.role)) {
-      throw new AppError('You do not have permission to remove members.', 403);
+      throw new AppError(403, 'You do not have permission to remove members.');
     }
 
     const memberToRemove = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: memberId } });
     if (!memberToRemove) {
-      throw new AppError('Member not found in this organization.', 404);
+      throw new AppError(404, 'Member not found in this organization.');
     }
 
     if (memberToRemove.role === MemberRole.OWNER) {
       const ownerCount = await this.organizationMemberRepository.count({ where: { organization_id: orgId, role: MemberRole.OWNER } });
       if (ownerCount <= 1) {
-        throw new AppError('Cannot remove the last owner.', 400);
+        throw new AppError(400, 'Cannot remove the last owner.');
       }
     }
 
@@ -197,14 +197,14 @@ export class OrganizationsService {
   async getOrganizationMembers(orgId: string, userId: string, pagination: PaginationParams) {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member) {
-      throw new AppError('You are not a member of this organization.', 403);
+      throw new AppError(403, 'You are not a member of this organization.');
     }
 
     const [members, total] = await this.organizationMemberRepository.findAndCount({
         where: { organization_id: orgId },
         relations: ['user'],
-        take: pagination.limit,
-        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit || 10,
+        skip: ((pagination.page || 1) - 1) * (pagination.limit || 10),
         select: {
             user: {
                 id: true,

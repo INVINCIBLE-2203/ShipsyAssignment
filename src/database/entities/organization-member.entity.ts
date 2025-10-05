@@ -12,26 +12,26 @@ export enum MemberRole {
 @Entity('organization_members')
 export class OrganizationMember {
   @PrimaryColumn('uuid')
-  user_id: string;
+  user_id!: string;
 
   @PrimaryColumn('uuid')
-  organization_id: string;
+  organization_id!: string;
 
   @Column({
     type: 'enum',
     enum: MemberRole,
     default: MemberRole.MEMBER,
   })
-  role: MemberRole;
+  role!: MemberRole;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  joined_at: Date;
+  joined_at!: Date;
 
-  @ManyToOne(() => User, user => user.organizationMemberships, { primary: true })
+  @ManyToOne(() => User, user => user.organizationMemberships)
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
-  @ManyToOne(() => Organization, organization => organization.members, { primary: true })
+  @ManyToOne(() => Organization, organization => organization.members)
   @JoinColumn({ name: 'organization_id' })
-  organization: Organization;
+  organization!: Organization;
 }

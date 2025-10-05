@@ -22,64 +22,64 @@ export enum TaskPriority {
 @Entity('tasks')
 export class Task {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid')
-  project_id: string;
+  project_id!: string;
 
   @Column()
-  title: string;
+  title!: string;
 
   @Column('text', { nullable: true })
-  description: string;
+  description!: string;
 
   @Column({
     type: 'enum',
     enum: TaskStatus,
     default: TaskStatus.TODO,
   })
-  status: TaskStatus;
+  status!: TaskStatus;
 
   @Column({
     type: 'enum',
     enum: TaskPriority,
     default: TaskPriority.MEDIUM,
   })
-  priority: TaskPriority;
+  priority!: TaskPriority;
 
   @Column('uuid', { nullable: true })
-  assignee_id: string;
+  assignee_id!: string;
 
   @Column({ type: 'timestamp with time zone', nullable: true })
-  due_date: Date;
+  due_date!: Date;
 
   @Column('uuid')
-  created_by: string;
+  created_by!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @Column({ type: 'timestamp with time zone', nullable: true })
-  completed_at: Date;
+  completed_at!: Date;
 
   @ManyToOne(() => Project, project => project.tasks)
   @JoinColumn({ name: 'project_id' })
-  project: Project;
+  project!: Project;
 
   @ManyToOne(() => User, user => user.assignedTasks)
   @JoinColumn({ name: 'assignee_id' })
-  assignee: User;
+  assignee!: User;
 
   @ManyToOne(() => User, user => user.createdTasks)
   @JoinColumn({ name: 'created_by' })
-  createdBy: User;
+  createdBy!: User;
 
   @OneToMany(() => Comment, comment => comment.task)
-  comments: Comment[];
+  comments!: Comment[];
 
   @OneToMany(() => CustomPropertyValue, value => value.task)
-  customPropertyValues: CustomPropertyValue[];
+  customPropertyValues!: CustomPropertyValue[];
 }

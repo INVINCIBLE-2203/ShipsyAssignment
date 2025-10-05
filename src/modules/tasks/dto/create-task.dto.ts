@@ -1,11 +1,11 @@
 import { IsString, IsOptional, IsEnum, IsUUID, IsDateString, MinLength, MaxLength } from 'class-validator';
-import { TaskStatus, TaskPriority } from '../../database/entities/task.entity';
+import { TaskStatus, TaskPriority } from '../../../database/entities/task.entity';
 
 export class CreateTaskDto {
   @IsString()
   @MinLength(1)
   @MaxLength(255)
-  title: string;
+  title!: string;
 
   @IsString()
   @IsOptional()

@@ -4,7 +4,7 @@ export class CreateProjectDto {
   @IsString()
   @MinLength(1)
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @IsString()
   @IsOptional()

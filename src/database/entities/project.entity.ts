@@ -6,34 +6,34 @@ import { Task } from './task.entity';
 @Entity('projects')
 export class Project {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column('uuid')
-  organization_id: string;
+  organization_id!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column('text', { nullable: true })
-  description: string;
+  description!: string;
 
   @Column('uuid')
-  created_by: string;
+  created_by!: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @ManyToOne(() => Organization, organization => organization.projects)
   @JoinColumn({ name: 'organization_id' })
-  organization: Organization;
+  organization!: Organization;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
-  creator: User;
+  creator!: User;
 
   @OneToMany(() => Task, task => task.project)
-  tasks: Task[];
+  tasks!: Task[];
 }

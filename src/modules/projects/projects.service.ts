@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../../database/entities/project.entity';
-import { OrganizationMember } from '../../database/entities/organization-member.entity';
+import { OrganizationMember, MemberRole } from '../../database/entities/organization-member.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { AppError } from '../../common/AppError';
@@ -29,7 +29,7 @@ export class ProjectsService {
   async createProject(orgId: string, userId: string, dto: CreateProjectDto): Promise<Project> {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member) {
-      throw new AppError('You must be a member of the organization to create a project.', 403);
+      throw new AppError(403, 'You must be a member of the organization to create a project.');
     }
 
     const project = this.projectRepository.create({
@@ -44,7 +44,7 @@ export class ProjectsService {
   async getOrganizationProjects(orgId: string, userId: string, filters: ProjectFilterParams, pagination: PaginationParams) {
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: orgId, user_id: userId } });
     if (!member) {
-      throw new AppError('You are not a member of this organization.', 403);
+      throw new AppError(403, 'You are not a member of this organization.');
     }
 
     const qb = this.projectRepository.createQueryBuilder('project')
@@ -65,8 +65,8 @@ export class ProjectsService {
             .from(Task, 't')
             .where('t.project_id = project.id');
       }, 'completionRate')
-      .offset((pagination.page - 1) * pagination.limit)
-      .limit(pagination.limit);
+      .offset(((pagination.page || 1) - 1) * (pagination.limit || 10))
+      .limit(pagination.limit || 10);
 
     if (filters.name) {
       qb.andWhere('project.name ILIKE :name', { name: `%${filters.name}%` });
@@ -83,12 +83,12 @@ export class ProjectsService {
   async getProjectById(projectId: string, userId: string): Promise<Project> {
     const project = await this.projectRepository.findOne({ where: { id: projectId }, relations: ['organization'] });
     if (!project) {
-      throw new AppError('Project not found.', 404);
+      throw new AppError(404, 'Project not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have access to this project.', 403);
+      throw new AppError(403, 'You do not have access to this project.');
     }
 
     const stats = await this.getProjectStats(projectId, userId);
@@ -98,12 +98,12 @@ export class ProjectsService {
   async updateProject(projectId: string, userId: string, dto: UpdateProjectDto): Promise<Project> {
     const project = await this.projectRepository.findOne({ where: { id: projectId } });
     if (!project) {
-      throw new AppError('Project not found.', 404);
+      throw new AppError(404, 'Project not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have permission to update this project.', 403);
+      throw new AppError(403, 'You do not have permission to update this project.');
     }
 
     Object.assign(project, dto);
@@ -113,12 +113,12 @@ export class ProjectsService {
   async deleteProject(projectId: string, userId: string): Promise<void> {
     const project = await this.projectRepository.findOne({ where: { id: projectId } });
     if (!project) {
-      throw new AppError('Project not found.', 404);
+      throw new AppError(404, 'Project not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: userId } });
     if (!member || ![MemberRole.OWNER, MemberRole.ADMIN].includes(member.role)) {
-      throw new AppError('You do not have permission to delete this project.', 403);
+      throw new AppError(403, 'You do not have permission to delete this project.');
     }
 
     await this.projectRepository.delete(projectId);
@@ -127,12 +127,12 @@ export class ProjectsService {
   async getProjectStats(projectId: string, userId: string) {
     const project = await this.projectRepository.findOne({ where: { id: projectId } });
     if (!project) {
-        throw new AppError('Project not found.', 404);
+        throw new AppError(404, 'Project not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: project.organization_id, user_id: userId } });
     if (!member) {
-        throw new AppError('You do not have access to this project.', 403);
+        throw new AppError(403, 'You do not have access to this project.');
     }
 
     const totalTasks = await this.taskRepository.count({ where: { project_id: projectId } });

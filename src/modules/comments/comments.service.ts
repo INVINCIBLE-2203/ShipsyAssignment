@@ -31,12 +31,12 @@ export class CommentsService {
   async createComment(taskId: string, userId: string, dto: CreateCommentDto): Promise<Comment> {
     const task = await this.taskRepository.findOne({ where: { id: taskId }, relations: ['project'] });
     if (!task) {
-      throw new AppError('Task not found.', 404);
+      throw new AppError(404, 'Task not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: task.project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have access to this task.', 403);
+      throw new AppError(403, 'You do not have access to this task.');
     }
 
     const parsedMentions = MentionParserUtil.parse(dto.content);
@@ -69,20 +69,20 @@ export class CommentsService {
   async getTaskComments(taskId: string, userId: string, pagination: PaginationParams) {
     const task = await this.taskRepository.findOne({ where: { id: taskId }, relations: ['project'] });
     if (!task) {
-      throw new AppError('Task not found.', 404);
+      throw new AppError(404, 'Task not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: task.project.organization_id, user_id: userId } });
     if (!member) {
-      throw new AppError('You do not have access to this task.', 403);
+      throw new AppError(403, 'You do not have access to this task.');
     }
 
     const [comments, total] = await this.commentRepository.findAndCount({
       where: { task_id: taskId },
       relations: ['user', 'mentions', 'mentions.mentionedUser'],
       order: { created_at: 'DESC' },
-      take: pagination.limit,
-      skip: (pagination.page - 1) * pagination.limit,
+      take: pagination.limit || 10,
+      skip: ((pagination.page || 1) - 1) * (pagination.limit || 10),
     });
 
     return { data: comments, total };
@@ -91,11 +91,11 @@ export class CommentsService {
   async updateComment(commentId: string, userId: string, content: string): Promise<Comment> {
     const comment = await this.commentRepository.findOne({ where: { id: commentId } });
     if (!comment) {
-      throw new AppError('Comment not found.', 404);
+      throw new AppError(404, 'Comment not found.');
     }
 
     if (comment.user_id !== userId) {
-      throw new AppError('You do not have permission to update this comment.', 403);
+      throw new AppError(403, 'You do not have permission to update this comment.');
     }
 
     const parsedMentions = MentionParserUtil.parse(content);
@@ -126,12 +126,12 @@ export class CommentsService {
   async deleteComment(commentId: string, userId: string): Promise<void> {
     const comment = await this.commentRepository.findOne({ where: { id: commentId }, relations: ['task', 'task.project'] });
     if (!comment) {
-      throw new AppError('Comment not found.', 404);
+      throw new AppError(404, 'Comment not found.');
     }
 
     const member = await this.organizationMemberRepository.findOne({ where: { organization_id: comment.task.project.organization_id, user_id: userId } });
     if (comment.user_id !== userId && (!member || ![MemberRole.ADMIN, MemberRole.OWNER].includes(member.role))) {
-      throw new AppError('You do not have permission to delete this comment.', 403);
+      throw new AppError(403, 'You do not have permission to delete this comment.');
     }
 
     await this.commentRepository.delete(commentId);
@@ -142,8 +142,8 @@ export class CommentsService {
         where: { mentioned_user_id: userId },
         relations: ['comment', 'comment.task', 'comment.task.project'],
         order: { created_at: 'DESC' },
-        take: pagination.limit,
-        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit || 10,
+        skip: ((pagination.page || 1) - 1) * (pagination.limit || 10),
     });
 
     return { data: mentions, total };

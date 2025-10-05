@@ -9,7 +9,7 @@ export class TasksController {
 
   async create(projectId: string, req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.tasksService.createTask(projectId, req.user.id, req.body as CreateTaskDto);
+      const result = await this.tasksService.createTask(projectId, (req.user as any)?.id, req.body as CreateTaskDto);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -21,7 +21,7 @@ export class TasksController {
       const { page = 1, limit = 10, sortBy, sortOrder, ...filters } = req.query;
       const result = await this.tasksService.getProjectTasks(
         projectId,
-        req.user.id,
+        (req.user as any)?.id,
         filters as any,
         { page: +page, limit: +limit },
         { sortBy: sortBy as string, sortOrder: sortOrder as any },
@@ -35,7 +35,7 @@ export class TasksController {
   async search(req: Request, res: Response, next: NextFunction) {
     try {
       const { q, page = 1, limit = 10 } = req.query;
-      const result = await this.tasksService.searchTasks(req.user.id, q as string, { page: +page, limit: +limit });
+      const result = await this.tasksService.searchTasks((req.user as any)?.id, q as string, { page: +page, limit: +limit });
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -44,7 +44,7 @@ export class TasksController {
 
   async findOne(id: string, req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.tasksService.getTaskById(id, req.user.id);
+      const result = await this.tasksService.getTaskById(id, (req.user as any)?.id);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -53,7 +53,7 @@ export class TasksController {
 
   async update(id: string, req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.tasksService.updateTask(id, req.user.id, req.body as UpdateTaskDto);
+      const result = await this.tasksService.updateTask(id, (req.user as any)?.id, req.body as UpdateTaskDto);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -62,7 +62,7 @@ export class TasksController {
 
   async remove(id: string, req: Request, res: Response, next: NextFunction) {
     try {
-      await this.tasksService.deleteTask(id, req.user.id);
+      await this.tasksService.deleteTask(id, (req.user as any)?.id);
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -72,7 +72,7 @@ export class TasksController {
   async assign(id: string, req: Request, res: Response, next: NextFunction) {
     try {
       const { assigneeId } = req.body;
-      const result = await this.tasksService.assignTask(id, req.user.id, assigneeId);
+      const result = await this.tasksService.assignTask(id, (req.user as any)?.id, assigneeId);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -82,7 +82,7 @@ export class TasksController {
   async updateStatus(id: string, req: Request, res: Response, next: NextFunction) {
     try {
       const { status } = req.body;
-      const result = await this.tasksService.updateTaskStatus(id, req.user.id, status as TaskStatus);
+      const result = await this.tasksService.updateTaskStatus(id, (req.user as any)?.id, status as TaskStatus);
       res.status(200).json(result);
     } catch (error) {
       next(error);
