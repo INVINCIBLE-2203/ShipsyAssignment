@@ -17,7 +17,7 @@ import { customPropertiesRouter } from './modules/custom-properties/custom-prope
 import { globalErrorHandler } from './common/middleware/error.middleware';
 import { applyJwtStrategy } from './modules/auth/guards/jwt.strategy';
 
-async function bootstrap() {
+export function createApp(): Application {
   const app: Application = express();
 
   // --- Middleware ---
@@ -30,8 +30,8 @@ async function bootstrap() {
   applyJwtStrategy(passport);
 
   const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: 60 * 1000, // 1 minute
+    max: 1000, // limit each IP to 1000 requests per minute
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -58,15 +58,21 @@ async function bootstrap() {
   // --- API Routes ---
   app.use('/api/auth', authRouter);
   app.use('/api/tasks', tasksRouter);
-app.use('/api/organizations', organizationsRouter);
-app.use('/api/projects', projectsRouter);
-app.use('/api/comments', commentsRouter);
-app.use('/api/custom-properties', customPropertiesRouter);
+  app.use('/api/organizations', organizationsRouter);
+  app.use('/api/projects', projectsRouter);
+  app.use('/api/comments', commentsRouter);
+  app.use('/api/custom-properties', customPropertiesRouter);
   // ... other module routes
 
   // --- Global Error Handler ---
   // This must be after all routes
   app.use(globalErrorHandler);
+
+  return app;
+}
+
+async function bootstrap() {
+  const app = createApp();
 
   // --- Database Connection ---
   try {
@@ -77,11 +83,19 @@ app.use('/api/custom-properties', customPropertiesRouter);
     process.exit(1);
   }
 
-
   // --- Start Server ---
   app.listen(appConfig.port, () => {
     console.log(`Server is running on http://localhost:${appConfig.port}`);
+    console.log(`📚 API Documentation is available at: http://localhost:${appConfig.port}/api-docs`);
+    console.log(`📄 Raw Swagger JSON is available at: http://localhost:${appConfig.port}/api-docs.json`);
   });
 }
 
-bootstrap();
+// Export the app for testing
+const app = createApp();
+export default app;
+
+// Only start the server if this file is run directly
+if (require.main === module) {
+  bootstrap();
+}

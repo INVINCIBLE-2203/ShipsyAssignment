@@ -73,6 +73,10 @@ export class TasksService {
         throw new AppError(403, 'You do not have access to this project.');
     }
 
+    // Normalize pagination parameters
+    const page = Math.max(1, pagination.page || 1); // Ensure page is at least 1
+    const limit = Math.min(100, Math.max(1, pagination.limit || 10)); // Ensure limit is between 1 and 100
+
     const qb = this.taskRepository.createQueryBuilder('task')
         .where('task.project_id = :projectId', { projectId })
         .leftJoinAndSelect('task.assignee', 'assignee')
@@ -83,8 +87,16 @@ export class TasksService {
         ])
         .addSelect('CASE WHEN task.due_date < NOW() AND task.status != \'done\' THEN EXTRACT(DAY FROM NOW() - task.due_date) ELSE 0 END', 'overdue_days');
 
-    if (filters.status?.length) {
-        qb.andWhere('task.status IN (:...statuses)', { statuses: filters.status });
+    // Handle status filtering - normalize status values
+    if (filters.status) {
+        let statusArray: string[];
+        if (Array.isArray(filters.status)) {
+            statusArray = filters.status;
+        } else {
+            // Handle single status value from query parameter
+            statusArray = [filters.status as string];
+        }
+        qb.andWhere('task.status IN (:...statuses)', { statuses: statusArray });
     }
     if (filters.priority?.length) {
         qb.andWhere('task.priority IN (:...priorities)', { priorities: filters.priority });
@@ -107,11 +119,24 @@ export class TasksService {
     }
 
     const [tasks, total] = await qb
-        .skip(((pagination.page || 1) - 1) * (pagination.limit || 10))
-        .take(pagination.limit || 10)
+        .skip((page - 1) * limit)
+        .take(limit)
         .getManyAndCount();
 
-    return { data: tasks, total };
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    return { 
+        data: tasks, 
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPreviousPage
+    };
   }
 
   async getTaskById(taskId: string, userId: string): Promise<Task> {
@@ -158,7 +183,19 @@ export class TasksService {
         task.completed_at = undefined as any;
     }
 
-    Object.assign(task, dto);
+    // Map DTO fields to entity fields with proper field names
+    const updateData: Partial<Task> = {};
+    
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.description !== undefined) updateData.description = dto.description;
+    if (dto.status !== undefined) updateData.status = dto.status;
+    if (dto.priority !== undefined) updateData.priority = dto.priority;
+    if (dto.assigneeId !== undefined) updateData.assignee_id = dto.assigneeId;
+    if (dto.dueDate !== undefined) {
+        updateData.due_date = dto.dueDate ? new Date(dto.dueDate) : undefined;
+    }
+
+    Object.assign(task, updateData);
     return this.taskRepository.save(task);
   }
 

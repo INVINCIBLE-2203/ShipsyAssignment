@@ -1,78 +1,279 @@
 import request from 'supertest';
-import express from 'express';
-import { AppDataSource } from '../../src/config/database.config';
-import { authRouter } from '../../src/modules/auth/auth.routes';
-import { globalErrorHandler } from '../../src/common/middleware/error.middleware';
-import { User } from '../../src/database/entities/user.entity';
+import app from '../../src/main';
+import { cleanDatabase } from '../helpers/database.helper';
+import { 
+  createValidUserPayload, 
+  createInvalidUserPayloads, 
+  createLoginPayload,
+  createInvalidLoginPayloads 
+} from '../fixtures/users.fixture';
 
-// Create a minimal express app for testing
-const app = express();
-app.use(express.json());
-app.use('/auth', authRouter);
-app.use(globalErrorHandler);
-
-describe('Auth Module (Integration)', () => {
-  beforeAll(async () => {
-    // Initialize database connection for testing
-    if (!AppDataSource.isInitialized) {
-      await AppDataSource.initialize();
-    }
+describe('Auth Validation Tests', () => {
+  beforeEach(async () => {
+    await cleanDatabase();
   });
 
-  afterAll(async () => {
-    // Clean up the database after tests
-    const userRepository = AppDataSource.getRepository(User);
-    await userRepository.delete({});
-    await AppDataSource.destroy();
+  describe('POST /api/auth/register', () => {
+    it('should successfully register with valid data', async () => {
+      const userData = createValidUserPayload();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.email).toBe(userData.email);
+      expect(response.body.username).toBe(userData.username);
+      expect(response.body).not.toHaveProperty('password_hash');
+      expect(response.body).toHaveProperty('created_at');
+      expect(response.body).toHaveProperty('updated_at');
+    });
+
+    it('should reject registration with invalid email format', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.invalidEmail)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toBe('Validation failed');
+    });
+
+    it('should reject registration with short password (<8 chars)', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.shortPassword)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toBe('Validation failed');
+    });
+
+    it('should reject registration with missing username', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.missingUsername)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should reject registration with duplicate email', async () => {
+      const userData = createValidUserPayload();
+      
+      // Register first user
+      await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(201);
+
+      // Try to register with same email
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(409);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message.toLowerCase()).toContain('email');
+    });
+
+    it('should allow registration with special characters in username', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.specialCharsUsername)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+    });
+
+    it('should allow password without uppercase letter', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.missingUppercase)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+    });
+
+    it('should allow password without lowercase letter', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.missingLowercase)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+    });
+
+    it('should allow password without number', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.missingNumber)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+    });
+
+    it('should allow registration with long username', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.longUsername)
+        .expect(201);
+
+      expect(response.body).toHaveProperty('id');
+    });
+
+    it('should reject registration with short username', async () => {
+      const invalidPayloads = createInvalidUserPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(invalidPayloads.shortUsername)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
   });
 
-  const testUser = {
-    email: 'test@example.com',
-    username: 'testuser',
-    password: 'password123',
-  };
+  describe('POST /api/auth/login', () => {
+    let testUserData: any;
+    
+    beforeEach(async () => {
+      // Create a test user for login tests
+      testUserData = createValidUserPayload();
+      await request(app)
+        .post('/api/auth/register')
+        .send(testUserData)
+        .expect(201);
+    });
 
-  it('POST /auth/register - should register a new user successfully', async () => {
-    const response = await request(app)
-      .post('/auth/register')
-      .send(testUser);
+    it('should successfully login with valid credentials', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: testUserData.email, password: testUserData.password })
+        .expect(200);
 
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty('id');
-    expect(response.body.email).toBe(testUser.email);
-    expect(response.body.username).toBe(testUser.username);
-    expect(response.body).not.toHaveProperty('password_hash');
+      expect(response.body).toHaveProperty('accessToken');
+      expect(response.body).toHaveProperty('refreshToken');
+    });
+
+    it('should reject login with non-existent email', async () => {
+      const invalidPayloads = createInvalidLoginPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(invalidPayloads.wrongEmail)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message.toLowerCase()).toContain('invalid');
+    });
+
+    it('should reject login with incorrect password', async () => {
+      const invalidPayloads = createInvalidLoginPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(invalidPayloads.wrongPassword)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message.toLowerCase()).toContain('invalid');
+    });
+
+    it('should reject login with missing email', async () => {
+      const invalidPayloads = createInvalidLoginPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(invalidPayloads.missingEmail)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should reject login with missing password', async () => {
+      const invalidPayloads = createInvalidLoginPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(invalidPayloads.missingPassword)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should reject login with empty credentials', async () => {
+      const invalidPayloads = createInvalidLoginPayloads();
+      
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(invalidPayloads.emptyCredentials)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
   });
 
-  it('POST /auth/register - should fail if email is already taken', async () => {
-    const response = await request(app)
-      .post('/auth/register')
-      .send(testUser);
+  describe('POST /api/auth/refresh', () => {
+    it('should refresh token with valid refresh token', async () => {
+      const userData = createValidUserPayload();
+      
+      // First register a user
+      await request(app)
+        .post('/api/auth/register')
+        .send(userData)
+        .expect(201);
 
-    expect(response.status).toBe(409);
-  });
+      // Then login to get tokens
+      const loginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({ email: userData.email, password: userData.password })
+        .expect(200);
 
-  it('POST /auth/login - should login the user and return tokens', async () => {
-    const response = await request(app)
-      .post('/auth/login')
-      .send({
-        email: testUser.email,
-        password: testUser.password,
-      });
+      const refreshToken = loginResponse.body.refreshToken;
 
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('accessToken');
-    expect(response.body).toHaveProperty('refreshToken');
-  });
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
 
-  it('POST /auth/login - should fail with invalid credentials', async () => {
-    const response = await request(app)
-      .post('/auth/login')
-      .send({
-        email: testUser.email,
-        password: 'wrongpassword',
-      });
+      expect(response.body).toHaveProperty('accessToken');
+      expect(response.body).toHaveProperty('refreshToken');
+    });
 
-    expect(response.status).toBe(401);
+    it('should reject refresh with invalid token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: 'invalid-token' })
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message');
+    });
+
+    it('should reject refresh with missing token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({})
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message');
+    });
   });
 });

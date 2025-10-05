@@ -2,7 +2,19 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { join } from 'path';
 
+const getConnectionString = (): string | undefined => {
+  const appEnv = process.env.APP_ENV || 'development';
+  
+  if (appEnv === 'production') {
+    return process.env.DATABASE_URL_PRODUCTION;
+  } else {
+    return process.env.DATABASE_URL_DEVELOPMENT;
+  }
+};
+
 export const dbConfig = {
+  // Use connection string if available, otherwise fall back to individual parameters
+  url: getConnectionString(),
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT ?? "5432", 10) || 5432,
   username: process.env.DB_USERNAME || 'postgres',
@@ -12,16 +24,37 @@ export const dbConfig = {
   logging: process.env.DB_LOGGING === 'true',
 };
 
-export const AppDataSource = new DataSource({
-  type: 'postgres',
-  host: dbConfig.host,
-  port: dbConfig.port,
-  username: dbConfig.username,
-  password: dbConfig.password,
-  database: dbConfig.database,
-  synchronize: dbConfig.synchronize,
-  logging: dbConfig.logging,
-  entities: [join(__dirname, '../database/entities/**/*.ts')],
-  migrations: [join(__dirname, '../database/migrations/**/*.ts')],
-  subscribers: [],
-});
+// Create DataSource with connection string or individual parameters
+const createDataSourceConfig = () => {
+  const baseConfig = {
+    type: 'postgres' as const,
+    synchronize: dbConfig.synchronize,
+    logging: dbConfig.logging,
+    entities: [join(__dirname, '../database/entities/**/*.ts')],
+    migrations: [join(__dirname, '../database/migrations/**/*.ts')],
+    subscribers: [],
+  };
+
+  // If connection string is available, use it
+  if (dbConfig.url) {
+    return {
+      ...baseConfig,
+      url: dbConfig.url,
+      ssl: {
+        rejectUnauthorized: false, // For cloud databases like Render, Railway, etc.
+      },
+    };
+  }
+
+  // Otherwise, use individual parameters (for local development)
+  return {
+    ...baseConfig,
+    host: dbConfig.host,
+    port: dbConfig.port,
+    username: dbConfig.username,
+    password: dbConfig.password,
+    database: dbConfig.database,
+  };
+};
+
+export const AppDataSource = new DataSource(createDataSourceConfig());
